@@ -1,0 +1,249 @@
+/* ==========================================================================
+   PM2.5 Network Mathematical Model PoC - Charts & Metrics Stylesheet
+   Theme: Light Premium Enterprise
+   ========================================================================== */
+
+/* Summary Metric Cards Row */
+.metrics-hero-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-fast);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.stat-card.stat-primary::before { background: var(--primary); }
+.stat-card.stat-emerald::before { background: var(--accent-emerald); }
+.stat-card.stat-amber::before { background: var(--accent-amber); }
+.stat-card.stat-rose::before { background: var(--accent-rose); }
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.stat-diff-badge {
+  font-family: var(--math-font, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.stat-diff-badge.positive {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.stat-value {
+  font-family: var(--math-font, monospace);
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.stat-subtext {
+  font-size: 11px;
+  color: var(--text-subtle);
+}
+
+/* Charts Grid */
+.charts-grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.chart-card {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-card);
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.chart-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.chart-subtitle {
+  font-size: 11px;
+  color: var(--text-subtle);
+}
+
+.chart-canvas-container {
+  width: 100%;
+  height: 250px;
+  position: relative;
+}
+
+.chart-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* Stepwise Table */
+.stepwise-table-container {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.stepwise-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.stepwise-table th {
+  background: #f8fafc;
+  color: var(--text-muted);
+  font-weight: 700;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.stepwise-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  vertical-align: middle;
+}
+
+.stepwise-table tr:hover td {
+  background: #f8fafc;
+}
+
+.stepwise-table tr.highlight-row td {
+  background: #fdf2f8;
+}
+
+.table-model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+}
+
+.pill-m-neg1 { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.pill-m0 { background: #f0f9ff; color: #0369a1; border: 1px solid #bae6fd; }
+.pill-m1 { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.pill-m2a { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.pill-m2b { background: #fdf2f8; color: #be185d; border: 1px solid #fbcfe8; }
+
+.table-val-mono {
+  font-family: var(--math-font, monospace);
+  font-weight: 600;
+}
+
+.val-best {
+  color: #047857;
+  font-weight: 800;
+}
+
+/* Bootstrap 95% CI Box */
+.bootstrap-ci-box {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.ci-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0369a1;
+}
+
+.ci-val-range {
+  font-family: var(--math-font, monospace);
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+@media (max-width: 992px) {
+  .metrics-hero-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .charts-grid-2x2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .metrics-hero-row {
+    grid-template-columns: 1fr;
+  }
+}

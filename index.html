@@ -3,1026 +3,731 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="โครงงาน YSC: การประยุกต์ทฤษฎีสัญญาณบนกราฟเพื่อศึกษาการเลือกตำแหน่งเซนเซอร์ PM2.5 ภายใต้ข้อจำกัดจำนวนเซนเซอร์และการสูญเสียข้อมูล" />
-  <meta name="theme-color" content="#f7f9fc" />
-  <title>PM2.5 × Graph Signal Processing | YSC Mathematics Project</title>
-  <style>
-    :root{
-      --ink:#0d1b2a;
-      --ink-2:#26384b;
-      --muted:#66788a;
-      --line:#dce4ec;
-      --paper:#ffffff;
-      --wash:#f5f8fb;
-      --blue:#1769e0;
-      --blue-2:#0b53b6;
-      --cyan:#0f97a8;
-      --red:#c2414a;
-      --amber:#b96a12;
-      --green:#1b7a55;
-      --shadow:0 18px 55px rgba(22,40,64,.09);
-      --radius:24px;
-      --radius-sm:16px;
-      --max:1180px;
-    }
+  <meta name="description" content="การพัฒนาแบบจำลองเชิงคณิตศาสตร์จากเครือข่าย PM2.5 เพื่อประมาณความน่าจะเป็นเชิงพื้นที่และเวลาของจุดความร้อนจากไฟที่ตรวจพบในอนาคต - YSC 2027 Mathematics & Statistics" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>PM2.5 Network Model PoC | YSC 2027 Mathematics & Statistics</title>
 
-    *{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{
-      margin:0;
-      color:var(--ink);
-      background:
-        radial-gradient(circle at 6% 5%, rgba(23,105,224,.07), transparent 24rem),
-        radial-gradient(circle at 96% 35%, rgba(15,151,168,.055), transparent 22rem),
-        var(--paper);
-      font-family:"Noto Sans Thai","Leelawadee UI","Tahoma","Segoe UI",sans-serif;
-      line-height:1.65;
-      -webkit-font-smoothing:antialiased;
-    }
+  <!-- Google Fonts: Inter & Noto Sans Thai -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Thai:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-    a{color:inherit;text-decoration:none}
-    button,input,select{font:inherit}
-    button{cursor:pointer}
-    ::selection{background:rgba(23,105,224,.16)}
-    .container{width:min(calc(100% - 40px),var(--max));margin:auto}
+  <!-- Leaflet CSS for Real Satellite Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    .nav{
-      position:sticky;top:0;z-index:50;
-      backdrop-filter:blur(16px);
-      background:rgba(255,255,255,.84);
-      border-bottom:1px solid rgba(220,228,236,.78);
-    }
-    .nav-inner{
-      height:68px;display:flex;align-items:center;justify-content:space-between;gap:24px;
-    }
-    .brand{display:flex;align-items:center;gap:12px;font-weight:850;letter-spacing:-.02em}
-    .brand-mark{
-      width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
-      color:white;background:linear-gradient(145deg,#0d1b2a,#1769e0);
-      box-shadow:0 8px 24px rgba(23,105,224,.22)
-    }
-    .brand small{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.12em}
-    .nav-links{display:flex;align-items:center;gap:24px;font-size:14px;color:var(--ink-2)}
-    .nav-links a:hover{color:var(--blue)}
-    .nav-cta{
-      padding:9px 15px;border:1px solid var(--line);border-radius:999px;background:white;
-      font-weight:750;color:var(--blue-2)
-    }
+  <!-- KaTeX for High-Precision Mathematical Typesetting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 
-    .hero{padding:86px 0 60px;overflow:hidden}
-    .hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:58px;align-items:center}
-    .eyebrow{
-      display:inline-flex;align-items:center;gap:9px;padding:7px 11px;border-radius:999px;
-      background:#eef5ff;color:var(--blue-2);font-size:12px;font-weight:850;letter-spacing:.06em;
-      border:1px solid #d6e6ff
-    }
-    .eyebrow-dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 5px rgba(23,105,224,.09)}
-    h1{
-      margin:18px 0 18px;font-size:clamp(40px,5.6vw,74px);line-height:1.04;letter-spacing:-.055em;
-      max-width:780px
-    }
-    .hero-accent{color:var(--blue)}
-    .hero-sub{
-      max-width:690px;color:var(--ink-2);font-size:18px;margin:0 0 28px
-    }
-    .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:28px}
-    .btn{
-      border:0;border-radius:14px;padding:13px 18px;font-weight:800;display:inline-flex;align-items:center;gap:9px;
-      transition:.2s transform,.2s box-shadow,.2s background
-    }
-    .btn:hover{transform:translateY(-2px)}
-    .btn-primary{background:var(--ink);color:white;box-shadow:0 12px 30px rgba(13,27,42,.18)}
-    .btn-secondary{background:white;color:var(--ink);border:1px solid var(--line)}
-    .hero-meta{display:flex;flex-wrap:wrap;gap:12px 22px;color:var(--muted);font-size:13px}
-    .hero-meta strong{color:var(--ink)}
-
-    .hero-visual{
-      min-height:540px;position:relative;border-radius:36px;
-      background:
-        linear-gradient(rgba(23,105,224,.045) 1px,transparent 1px),
-        linear-gradient(90deg,rgba(23,105,224,.045) 1px,transparent 1px),
-        linear-gradient(160deg,#fbfdff,#edf4fb);
-      background-size:30px 30px,30px 30px,auto;
-      border:1px solid #dfe8f1;box-shadow:var(--shadow);overflow:hidden;
-    }
-    .hero-visual::after{
-      content:"";position:absolute;inset:0;pointer-events:none;
-      background:radial-gradient(circle at 70% 22%,rgba(23,105,224,.18),transparent 12rem)
-    }
-    .mini-label{
-      position:absolute;z-index:3;top:24px;left:24px;padding:8px 11px;border-radius:10px;
-      background:rgba(255,255,255,.9);border:1px solid var(--line);font-size:11px;font-weight:850;
-      color:var(--ink-2);letter-spacing:.08em
-    }
-    #heroGraph{position:absolute;inset:56px 14px 96px;width:calc(100% - 28px);height:calc(100% - 152px)}
-    .visual-bottom{
-      position:absolute;left:22px;right:22px;bottom:20px;z-index:4;display:grid;grid-template-columns:repeat(3,1fr);gap:9px
-    }
-    .micro-card{
-      padding:12px 12px 10px;background:rgba(255,255,255,.9);border:1px solid var(--line);border-radius:14px;
-      box-shadow:0 8px 28px rgba(20,42,70,.05)
-    }
-    .micro-card b{display:block;font-size:18px;letter-spacing:-.03em}
-    .micro-card span{font-size:10px;color:var(--muted);font-weight:750}
-
-    .section{padding:82px 0}
-    .section.soft{background:var(--wash);border-top:1px solid #e8eef4;border-bottom:1px solid #e8eef4}
-    .section-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:30px}
-    .kicker{font-size:12px;color:var(--blue);font-weight:900;letter-spacing:.13em;text-transform:uppercase}
-    h2{font-size:clamp(28px,4vw,46px);line-height:1.15;letter-spacing:-.035em;margin:5px 0 9px}
-    .section-lead{max-width:720px;color:var(--muted);margin:0;font-size:16px}
-    .section-note{max-width:330px;color:var(--muted);font-size:12px;text-align:right}
-
-    .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-    .problem-card{
-      border:1px solid var(--line);border-radius:var(--radius);padding:24px;background:white;min-height:230px;
-      box-shadow:0 10px 34px rgba(20,42,70,.045)
-    }
-    .problem-no{color:var(--blue);font-size:12px;font-weight:900;letter-spacing:.1em}
-    .problem-card h3{font-size:21px;margin:14px 0 8px;letter-spacing:-.02em}
-    .problem-card p{color:var(--muted);margin:0}
-    .formula-chip{
-      display:inline-flex;margin-top:18px;padding:8px 11px;border-radius:10px;background:#f6f8fb;border:1px solid var(--line);
-      font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:14px;color:var(--ink)
-    }
-
-    .lab-shell{
-      background:#08131f;color:#eaf3ff;border-radius:30px;padding:18px;border:1px solid #152b40;
-      box-shadow:0 30px 70px rgba(9,25,41,.18)
-    }
-    .lab-top{
-      display:flex;justify-content:space-between;align-items:center;gap:20px;padding:9px 8px 18px
-    }
-    .lab-title{display:flex;align-items:center;gap:11px}
-    .status-dot{width:9px;height:9px;border-radius:50%;background:#52d49b;box-shadow:0 0 0 6px rgba(82,212,155,.1)}
-    .lab-title b{font-size:15px}.lab-title span{display:block;color:#8298ad;font-size:11px}
-    .toy-badge{font-size:10px;font-weight:850;letter-spacing:.08em;padding:7px 10px;border-radius:999px;border:1px solid #27415b;color:#9eb4c9}
-
-    .lab-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px}
-    .control-panel,.viz-panel,.metric-panel,.compare-panel{
-      border:1px solid #173149;background:#0c1c2b;border-radius:20px
-    }
-    .control-panel{padding:16px}
-    .control-group{padding:14px 0;border-bottom:1px solid #173149}
-    .control-group:first-child{padding-top:0}
-    .control-group:last-child{border-bottom:0;padding-bottom:0}
-    .control-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:9px}
-    .control-head label{font-size:12px;font-weight:800;color:#bfd1e1}
-    .control-value{font-size:12px;color:#fff;font-weight:850}
-    input[type="range"]{width:100%;accent-color:#4b9bff}
-    select{
-      width:100%;background:#0a1724;color:#eaf3ff;border:1px solid #244159;border-radius:11px;padding:10px
-    }
-    .method-list{display:grid;gap:8px}
-    .method-btn{
-      text-align:left;background:#0a1724;color:#a9bfd2;border:1px solid #1b3a55;border-radius:12px;padding:10px 11px;
-      transition:.18s
-    }
-    .method-btn:hover,.method-btn.active{border-color:#4b9bff;color:#fff;background:#102844}
-    .method-btn span{display:block;font-size:11px;color:#718da6;margin-top:2px}
-    .method-btn.active span{color:#9bbce0}
-    .control-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
-    .lab-btn{
-      border-radius:11px;border:1px solid #244159;background:#10253a;color:#dcecff;padding:9px 10px;font-size:12px;font-weight:800
-    }
-    .lab-btn.primary{background:#1769e0;border-color:#1769e0;color:white}
-
-    .viz-stack{display:grid;grid-template-rows:minmax(430px,1fr) auto;gap:14px}
-    .viz-panel{position:relative;overflow:hidden;min-height:430px}
-    .viz-toolbar{
-      position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:5;pointer-events:none
-    }
-    .viz-toolbar > *{pointer-events:auto}
-    .legend{display:flex;gap:7px;flex-wrap:wrap}
-    .legend span{background:rgba(8,19,31,.82);border:1px solid #21415e;border-radius:999px;padding:5px 8px;font-size:10px;color:#9fb6cb}
-    .legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
-    .legend .l-selected i{background:#4b9bff}.legend .l-hidden i{background:#667b90}.legend .l-failed i{background:#e35d67}
-    .viz-caption{
-      background:rgba(8,19,31,.82);border:1px solid #21415e;border-radius:10px;padding:6px 9px;font-size:10px;color:#91a8bd
-    }
-    #graphSvg{width:100%;height:100%;min-height:430px;display:block;background:
-      radial-gradient(circle at 45% 45%,rgba(28,90,142,.18),transparent 42%),
-      linear-gradient(rgba(57,97,129,.055) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(57,97,129,.055) 1px,transparent 1px);
-      background-size:auto,32px 32px,32px 32px
-    }
-    .thailand-ghost{fill:#15324a;stroke:#234e6c;stroke-width:1.2;opacity:.55}
-    .edge{stroke:#31516c;stroke-width:1;opacity:.42}
-    .node-halo{fill:none;stroke:#4b9bff;stroke-width:3;opacity:.22}
-    .node{stroke:#08131f;stroke-width:2.4}
-    .node.hidden{fill:#647b90}.node.selected{fill:#4b9bff}.node.failed{fill:#e35d67}
-    .node-label{font-size:9px;fill:#bdd0df;pointer-events:none}
-    .signal-ring{fill:none;stroke:#76c7ff;stroke-width:1.2;opacity:.22}
-
-    .metric-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-    .metric-panel{padding:13px 14px}
-    .metric-label{font-size:10px;color:#7992a8;text-transform:uppercase;letter-spacing:.09em;font-weight:800}
-    .metric-value{font-size:21px;font-weight:880;letter-spacing:-.025em;margin-top:2px}
-    .metric-sub{font-size:9px;color:#607b92}
-    .metric-value.good{color:#6bd5a5}.metric-value.warn{color:#f0bd72}
-
-    .compare-panel{margin-top:14px;padding:16px}
-    .compare-head{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:13px}
-    .compare-head b{font-size:13px}.compare-head span{font-size:10px;color:#738ba1}
-    .compare-list{display:grid;gap:9px}
-    .compare-row{display:grid;grid-template-columns:140px 1fr 72px;gap:10px;align-items:center;font-size:11px}
-    .compare-name{color:#b8cad9}
-    .bar-track{height:8px;border-radius:999px;background:#132c42;overflow:hidden}
-    .bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#3f8df1,#79bdff);width:30%}
-    .compare-num{text-align:right;color:#e4f0fa;font-variant-numeric:tabular-nums}
-
-    .math-flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-    .math-step{
-      position:relative;border:1px solid var(--line);border-radius:18px;padding:18px;background:#fff;min-height:190px
-    }
-    .math-step:not(:last-child)::after{
-      content:"→";position:absolute;right:-10px;top:42%;z-index:2;width:20px;height:20px;display:grid;place-items:center;
-      background:white;color:var(--blue);font-weight:900
-    }
-    .math-step .step-no{font-size:10px;color:var(--blue);font-weight:900;letter-spacing:.12em}
-    .math-step h3{font-size:15px;margin:9px 0 7px}
-    .math-step p{font-size:12px;color:var(--muted);margin:0}
-    .eq{
-      min-height:48px;margin:14px 0 0;padding:10px;border:1px solid #e5ebf1;background:#f8fafc;border-radius:11px;
-      display:flex;align-items:center;justify-content:center;overflow-x:auto;
-      font-family:"Cambria Math","STIX Two Math","Times New Roman",serif
-    }
-    math{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:18px}
-
-    .rq-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    .rq{
-      border:1px solid var(--line);border-radius:20px;padding:22px;background:white;display:grid;grid-template-columns:auto 1fr;gap:15px
-    }
-    .rq-code{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;background:#eef5ff;color:var(--blue);font-weight:900}
-    .rq h3{margin:0 0 5px;font-size:17px}.rq p{margin:0;color:var(--muted);font-size:14px}
-
-    .integrity-grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:20px}
-    .timeline-card,.integrity-card{border:1px solid var(--line);background:white;border-radius:24px;padding:24px}
-    .timeline{display:grid;gap:0;margin-top:18px}
-    .timeline-item{display:grid;grid-template-columns:34px 1fr;gap:12px;position:relative;padding-bottom:18px}
-    .timeline-item:last-child{padding-bottom:0}
-    .timeline-item:not(:last-child)::before{content:"";position:absolute;left:16px;top:30px;bottom:0;width:1px;background:#d8e3ed}
-    .timeline-dot{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#eff5fb;color:var(--blue);font-size:11px;font-weight:900;z-index:1}
-    .timeline-item b{display:block;font-size:14px}.timeline-item span{font-size:12px;color:var(--muted)}
-    .integrity-card h3,.timeline-card h3{margin:0;font-size:20px}
-    .guardrail{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid #edf1f5}
-    .guardrail:last-child{border-bottom:0}
-    .guardrail-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#edf8f4;color:var(--green);font-size:13px;font-weight:900;flex:0 0 auto}
-    .guardrail b{font-size:13px;display:block}.guardrail span{font-size:12px;color:var(--muted)}
-
-    .metric-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
-    .metric-card{border:1px solid var(--line);border-radius:20px;padding:20px;background:white}
-    .metric-card h3{margin:0 0 10px;font-size:14px}.metric-card p{font-size:12px;color:var(--muted);margin:10px 0 0}
-    .metric-card .eq{min-height:60px;margin-top:0}
-
-    .scope-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .scope-card{border-radius:24px;padding:25px;border:1px solid var(--line);background:white}
-    .scope-card.primary{background:#0d1b2a;color:white;border-color:#0d1b2a}
-    .scope-card .scope-tag{font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--blue)}
-    .scope-card.primary .scope-tag{color:#7fb6ff}
-    .scope-card h3{font-size:22px;margin:7px 0 11px}
-    .scope-card p{margin:0;color:var(--muted)}
-    .scope-card.primary p{color:#a9bac9}
-    .scope-card ul{padding-left:18px;color:var(--muted);font-size:13px}
-    .scope-card.primary ul{color:#b8c7d4}
-
-    .refs{display:grid;gap:9px}
-    .ref{
-      display:grid;grid-template-columns:34px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)
-    }
-    .ref:last-child{border-bottom:0}
-    .ref-no{color:var(--blue);font-weight:900;font-size:12px}
-    .ref p{margin:0;font-size:13px;color:var(--ink-2)}
-    .ref small{color:var(--muted)}
-
-    .footer{
-      padding:34px 0 42px;background:#08131f;color:#9bb0c2;border-top:1px solid #102a40
-    }
-    .footer-grid{display:flex;justify-content:space-between;gap:28px;align-items:center}
-    .footer b{color:white}.footer small{display:block;max-width:720px;margin-top:5px}
-    .foot-badge{border:1px solid #264158;padding:8px 10px;border-radius:999px;font-size:10px;letter-spacing:.1em;font-weight:850}
-
-    .reveal{opacity:0;transform:translateY(14px);transition:.55s ease}
-    .reveal.visible{opacity:1;transform:none}
-
-    @media (max-width:1000px){
-      .hero-grid{grid-template-columns:1fr}.hero-visual{min-height:500px}
-      .lab-grid{grid-template-columns:1fr}.control-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:0 20px}
-      .control-group{border-bottom:1px solid #173149}
-      .math-flow{grid-template-columns:repeat(2,1fr)}.math-step:not(:last-child)::after{display:none}
-      .metric-cards{grid-template-columns:repeat(2,1fr)}
-      .integrity-grid{grid-template-columns:1fr}
-    }
-    @media (max-width:760px){
-      .container{width:min(calc(100% - 24px),var(--max))}
-      .nav-links a:not(.nav-cta){display:none}
-      .hero{padding-top:56px}.hero-grid{gap:34px}.hero-sub{font-size:16px}
-      .problem-grid,.rq-grid,.scope-grid{grid-template-columns:1fr}
-      .section{padding:60px 0}.section-head{display:block}.section-note{text-align:left;margin-top:10px}
-      .lab-shell{padding:10px;border-radius:22px}.control-panel{grid-template-columns:1fr}
-      .viz-panel,#graphSvg{min-height:390px}
-      .metric-row{grid-template-columns:repeat(2,1fr)}
-      .metric-row .metric-panel:last-child{grid-column:span 2}
-      .compare-row{grid-template-columns:100px 1fr 58px}
-      .math-flow,.metric-cards{grid-template-columns:1fr}
-      .footer-grid{display:block}.foot-badge{display:inline-block;margin-top:18px}
-      .visual-bottom{grid-template-columns:1fr 1fr}.visual-bottom .micro-card:last-child{display:none}
-    }
-  </style>
+  <!-- Application Stylesheets (Light Premium Enterprise Theme) -->
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/map.css" />
+  <link rel="stylesheet" href="css/charts.css" />
 </head>
 <body>
-  <nav class="nav">
-    <div class="container nav-inner">
-      <a class="brand" href="#top" aria-label="กลับด้านบน">
-        <span class="brand-mark">G</span>
-        <span>PM2.5 × GSP<small>YSC · APPLIED MATHEMATICS</small></span>
+
+  <!-- Top Enterprise Navbar & Tabs -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a class="nav-brand" href="#top" aria-label="กลับสู่ด้านบน">
+        <div class="brand-icon">∑</div>
+        <div class="brand-text">
+          <span class="brand-title">PM2.5 Network Model PoC</span>
+          <span class="brand-subtitle">YSC 2027 · Applied Mathematics (MAAP)</span>
+        </div>
       </a>
-      <div class="nav-links">
-        <a href="#problem">โจทย์วิจัย</a>
-        <a href="#experiment">ทดลอง</a>
-        <a href="#math">คณิตศาสตร์</a>
-        <a href="#method">วิธีวิจัย</a>
-        <a class="nav-cta" href="#experiment">เปิด Interactive Lab →</a>
+
+      <!-- Enterprise Clean Tab Bar -->
+      <nav class="nav-tab-bar" aria-label="แถบเมนูหลัก">
+        <button class="nav-tab-btn active" data-tab="tab-map">
+          <span>🗺️ แผนที่พยากรณ์หลัก</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-metrics">
+          <span>📊 การเปรียบเทียบโมเดล</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-math">
+          <span>📐 แกนคณิตศาสตร์</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-protocol">
+          <span>🧪 เกณฑ์วินิจฉัย & วิธีวิจัย</span>
+        </button>
+        <button class="nav-tab-btn" data-tab="tab-refs">
+          <span>📚 คลังอ้างอิง (Ref.)</span>
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="btn-ref" data-ref="all" aria-label="ดูแหล่งอ้างอิงข้อมูล">
+          <span>Ref. แหล่งข้อมูล</span>
+        </button>
       </div>
     </div>
-  </nav>
+  </header>
+
+  <!-- Compact Hero Section -->
+  <section class="hero-compact">
+    <div class="container">
+      <div class="hero-header-row">
+        <div class="hero-main-col">
+          <div class="hero-badge-row">
+            <span class="badge-tag badge-ysc">🏆 YSC 2027</span>
+            <span class="badge-tag badge-maap">📐 คณิตศาสตร์และสถิติ (MAAP)</span>
+            <span class="badge-tag badge-school">🏫 รร.ห้องสอนศึกษา ในพระอุปถัมภ์ฯ จ.แม่ฮ่องสอน</span>
+          </div>
+
+          <h1 class="hero-title">
+            การพัฒนาแบบจำลองเชิงคณิตศาสตร์จากเครือข่าย <span class="gradient-text">PM2.5</span> เพื่อประมาณความน่าจะเป็นเชิงพื้นที่และเวลาของจุดความร้อนจากไฟ
+          </h1>
+
+          <p class="hero-subtitle-en">
+            <strong>Official Title:</strong> Development of a PM2.5 Network-Based Mathematical Model for Spatiotemporal Probability Estimation of Future Active-Fire Hotspots (Δ = 24h)
+          </p>
+
+          <div class="disclaimer-banner" role="alert">
+            <span>⚠️</span>
+            <span><strong>RESEARCH DEMONSTRATION ONLY:</strong> เว็บแอปนี้ทำหน้าที่เป็น <em>ห้องทดลองย้อนดูการทดลองทางคณิตศาสตร์ในอดีต (Retrospective Experiment Explorer)</em> ไม่ใช่ระบบเตือนภัยหรือการสั่งการดับไฟจริงของหน่วยงานภาครัฐ</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <main id="top">
-    <section class="hero">
-      <div class="container hero-grid">
-        <div class="reveal">
-          <span class="eyebrow"><span class="eyebrow-dot"></span> MATHEMATICS & STATISTICS · MAAP</span>
-          <h1>วางเซนเซอร์ <span class="hero-accent">PM2.5</span><br/>อย่างไร ให้ข้อมูล “คุ้ม” ที่สุด?</h1>
-          <p class="hero-sub">
-            โครงงานคณิตศาสตร์ประยุกต์ที่ใช้ <strong>Graph Signal Processing</strong> ศึกษาการเลือกตำแหน่งสถานีตรวจวัด
-            ภายใต้ข้อจำกัดจำนวนเซนเซอร์ และทดสอบว่าระบบยังสร้างข้อมูลเครือข่ายกลับได้ดีเพียงใดเมื่อบางเซนเซอร์สูญหาย
-          </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="#experiment">ทดลอง Toy Graph <span>↘</span></a>
-            <a class="btn btn-secondary" href="#math">ดูแกนคณิตศาสตร์ <span>→</span></a>
-          </div>
-          <div class="hero-meta">
-            <span><strong>Core:</strong> Graph Theory · Linear Algebra · Sampling</span>
-            <span><strong>Data:</strong> Air4Thai PM2.5</span>
-            <span><strong>Web:</strong> Proof of Concept</span>
+    <!-- =========================================================================
+         TAB 1: 🗺️ แผนที่พยากรณ์หลัก (Satellite Map & Scenario Explorer)
+         ========================================================================= -->
+    <div class="tab-pane active" id="tab-map">
+      <div class="container container-wide">
+        <!-- Scenario Selector Cards -->
+        <div class="scenario-selector-grid">
+          <button class="scenario-card-btn active" data-scenario="peak_fire_2024">
+            <div class="scenario-icon">🔥</div>
+            <div>
+              <div class="scenario-title">Episode 1: ฤดูไฟป่ารุนแรง (มี.ค. 2024)</div>
+              <div class="scenario-meta">แม่ฮ่องสอน & ภาคเหนือบน · ลม SW แรง</div>
+            </div>
+          </button>
+
+          <button class="scenario-card-btn" data-scenario="boundary_smoke_2024">
+            <div class="scenario-icon">🌫️</div>
+            <div>
+              <div class="scenario-title">Episode 2: ควันข้ามแดน & แอ่งกระทะ (เม.ย. 2024)</div>
+              <div class="scenario-meta">เชียงราย & เชียงใหม่ · อุณหภูมิผกผัน</div>
+            </div>
+          </button>
+
+          <button class="scenario-card-btn" data-scenario="early_season_baseline">
+            <div class="scenario-icon">🌲</div>
+            <div>
+              <div class="scenario-title">Episode 3: ต้นฤดูแล้งควบคุม (ม.ค. 2024)</div>
+              <div class="scenario-meta">สภาวะปกติ · ทดสอบความเสถียร M0</div>
+            </div>
+          </button>
+
+          <button class="scenario-card-btn" data-scenario="exclusion_stress_test">
+            <div class="scenario-icon">🛡️</div>
+            <div>
+              <div class="scenario-title">Episode 4: ทดสอบการตัดข้อมูล (Exclusion)</div>
+              <div class="scenario-meta">พิสูจน์การแยกควันออกจากสัญญาณล่วงหน้า</div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Stepwise Model Selector Bar -->
+        <div style="margin-bottom: 14px;">
+          <div class="model-step-selector">
+            <button class="step-btn" data-model="M-1">
+              <span class="step-code">M-1</span>
+              <span class="step-desc">Constant Prevalence Floor</span>
+            </button>
+            <button class="step-btn" data-model="M0">
+              <span class="step-code">M0 Baseline</span>
+              <span class="step-desc">Weather + DEM + MODIS + C_i</span>
+            </button>
+            <button class="step-btn" data-model="M1">
+              <span class="step-code">M1 Local Dust</span>
+              <span class="step-desc">M0 + Nearest PM2.5 Anomaly</span>
+            </button>
+            <button class="step-btn" data-model="M2a">
+              <span class="step-code">M2a Dist Network</span>
+              <span class="step-desc">M0 + Distance Score Φ_i^(D)</span>
+            </button>
+            <button class="step-btn active" data-model="M2b">
+              <span class="step-code">M2b Full Proposed</span>
+              <span class="step-desc">M0 + Distance + Wind Score Φ_i</span>
+            </button>
           </div>
         </div>
 
-        <div class="hero-visual reveal" aria-label="ภาพเครือข่ายเชิงแนวคิด">
-          <div class="mini-label">GRAPH SIGNAL VIEW · CONCEPT</div>
-          <svg id="heroGraph" viewBox="0 0 560 410" role="img" aria-label="โครงข่ายสถานี PM2.5 แบบกราฟ"></svg>
-          <div class="visual-bottom">
-            <div class="micro-card"><b>N nodes</b><span>CANDIDATE STATIONS</span></div>
-            <div class="micro-card"><b>K &lt; N</b><span>SENSOR BUDGET</span></div>
-            <div class="micro-card"><b>q failures</b><span>DATA-LOSS TEST</span></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section soft" id="problem">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <div class="kicker">Research problem</div>
-            <h2>โจทย์ไม่ได้ถามว่า “วางให้ทั่ว” อย่างเดียว</h2>
-            <p class="section-lead">แต่ถามว่าตำแหน่งใดรักษา “ข้อมูลของเครือข่าย” ได้ดีที่สุด เมื่อทรัพยากรมีจำกัดและข้อมูลบางจุดอาจหายไป</p>
-          </div>
-          <p class="section-note">Webapp นี้ตั้งใจสื่อสาร mathematical model และทำซ้ำการทดลองสำคัญ—not a real-time air-quality alert system.</p>
-        </div>
-        <div class="problem-grid">
-          <article class="problem-card reveal">
-            <div class="problem-no">01 · BUDGET</div>
-            <h3>มี N จุด แต่เลือกได้เพียง K จุด</h3>
-            <p>ทุกวิธีต้องแข่งขันภายใต้ sensor budget เดียวกัน เพื่อให้เปรียบเทียบอย่างยุติธรรม</p>
-            <div class="formula-chip">S ⊆ V, &nbsp; |S| = K</div>
-          </article>
-          <article class="problem-card reveal">
-            <div class="problem-no">02 · RECONSTRUCTION</div>
-            <h3>ใช้จุดที่เลือก ประมาณค่าจุดที่ซ่อน</h3>
-            <p>ซ่อนสถานีที่มี ground truth จริง แล้ววัดว่าการสร้างสัญญาณกลับคลาดเคลื่อนเท่าใด</p>
-            <div class="formula-chip">x̂ = Uᵣ(CₛUᵣ)†y</div>
-          </article>
-          <article class="problem-card reveal">
-            <div class="problem-no">03 · ROBUSTNESS</div>
-            <h3>ถ้าเซนเซอร์บางตัวหาย จะเกิดอะไรขึ้น?</h3>
-            <p>จำลอง failure set แล้วทำ reconstruction ใหม่ เพื่อวัดการเสื่อมของความแม่นยำ</p>
-            <div class="formula-chip">S′ = S ∖ F, &nbsp; |F| = q</div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="experiment">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <div class="kicker">Interactive mathematical experiment</div>
-            <h2>ทดลองกับ Toy Graph ก่อนใช้ข้อมูลจริง</h2>
-            <p class="section-lead">
-              เปลี่ยนจำนวนเซนเซอร์ วิธีเลือกตำแหน่ง และจำนวนเซนเซอร์ที่ล้มเหลว แล้วระบบจะคำนวณ Graph Laplacian,
-              eigenvectors, sampling และ least-squares reconstruction ใหม่ใน browser
-            </p>
-          </div>
-          <p class="section-note"><strong>สำคัญ:</strong> ค่าทั้งหมดในส่วนนี้มาจากข้อมูลสังเคราะห์เพื่ออธิบายหลักการ ไม่ใช่ผลการทดลองของโครงงาน</p>
-        </div>
-
-        <div class="lab-shell reveal">
-          <div class="lab-top">
-            <div class="lab-title"><span class="status-dot"></span><div><b>GSP Interactive Lab</b><span>client-side numerical demo · no external library</span></div></div>
-            <span class="toy-badge">SYNTHETIC DATA · NOT RESEARCH RESULT</span>
-          </div>
-
-          <div class="lab-grid">
-            <aside class="control-panel">
-              <div class="control-group">
-                <div class="control-head"><label for="budget">Sensor budget (K)</label><span class="control-value" id="budgetValue">9 / 28</span></div>
-                <input id="budget" type="range" min="6" max="14" step="1" value="9"/>
+        <!-- Satellite Map & Inspector Layout Grid -->
+        <div class="map-layout-grid">
+          <!-- Real Satellite Map Viewport -->
+          <div class="map-viewport-container">
+            <div class="map-top-bar">
+              <div class="map-status-cluster">
+                <span class="status-indicator"></span>
+                <span class="map-origin-time" id="activeOriginTime">18 March 2024 · 06:00 ICT</span>
+                <span class="map-domain-tag">Satellite Overlay (0.1° × 0.1°)</span>
               </div>
 
-              <div class="control-group">
-                <div class="control-head"><label for="failure">Sensor failure (q)</label><span class="control-value" id="failureValue">1</span></div>
-                <input id="failure" type="range" min="0" max="2" step="1" value="1"/>
+              <!-- Layer Toggles -->
+              <div class="map-layer-toggles">
+                <button class="layer-toggle-btn active" data-layer="mode_prob">π_i Prob</button>
+                <button class="layer-toggle-btn" data-layer="mode_phi_w">Φ_i Score</button>
+                <button class="layer-toggle-btn" data-layer="mode_phi_d">Φ_i^(D) Dist</button>
+                <button class="layer-toggle-btn" data-layer="mode_exclusion">E_i Mask</button>
+                <button class="layer-toggle-btn" data-layer="mode_groundtruth">FIRMS Truth</button>
+                <span style="color: #cbd5e1;">|</span>
+                <button class="layer-toggle-btn active" data-layer="stations" id="layerStations">สถานี</button>
+                <button class="layer-toggle-btn active" data-layer="wind" id="layerWind">ลม</button>
+                <button class="layer-toggle-btn active" data-layer="links" id="layerLinks">เส้นน้ำหนัก</button>
+                <button class="layer-toggle-btn active" data-layer="hotspots" id="layerHotspots">ไฟจริง</button>
               </div>
+            </div>
 
-              <div class="control-group">
-                <div class="control-head"><label>Sampling method</label><span class="control-value" id="methodValue">Graph Signal</span></div>
-                <div class="method-list" id="methodList">
-                  <button class="method-btn" data-method="random">Random Sampling<span>baseline · seeded repeat</span></button>
-                  <button class="method-btn" data-method="coverage">Geometric Coverage<span>farthest-point spatial spread</span></button>
-                  <button class="method-btn active" data-method="gsp">Graph Signal Sampling<span>spectral D-opt proxy on Uᵣ</span></button>
-                  <button class="method-btn" data-method="robust">Robust GSP (toy criterion)<span>worst-case conditioning after 1 loss</span></button>
+            <!-- Leaflet Satellite Map Element -->
+            <div id="leafletMap"></div>
+
+            <!-- Floating Legend Overlay -->
+            <div class="map-legend-overlay">
+              <div class="legend-title">ความน่าจะเป็น (π_i, 24h)</div>
+              <div class="legend-bar-container">
+                <div class="legend-gradient-bar"></div>
+                <div class="legend-scale-labels">
+                  <span>0%</span>
+                  <span>15%</span>
+                  <span>30%</span>
+                  <span>50%</span>
+                  <span>100%</span>
                 </div>
               </div>
-
-              <div class="control-group">
-                <div class="control-head"><label for="rank">Spectral dimension (r)</label><span class="control-value" id="rankValue">5</span></div>
-                <input id="rank" type="range" min="3" max="6" step="1" value="5"/>
-                <div class="control-actions">
-                  <button class="lab-btn" id="newRandom">เปลี่ยน seed</button>
-                  <button class="lab-btn primary" id="resetLab">Reset</button>
+              <div class="legend-items-list">
+                <div class="legend-item">
+                  <span class="legend-icon-swatch" style="background: #7c3aed;"></span>
+                  <span>สถานี Air4Thai (<span class="math-font">a_j</span> ความผิดปกติ)</span>
                 </div>
-              </div>
-            </aside>
-
-            <div class="viz-stack">
-              <div class="viz-panel">
-                <div class="viz-toolbar">
-                  <div class="legend">
-                    <span class="l-selected"><i></i>selected</span>
-                    <span class="l-hidden"><i></i>hidden</span>
-                    <span class="l-failed"><i></i>failed</span>
-                  </div>
-                  <span class="viz-caption">node size ≈ synthetic PM2.5 signal</span>
+                <div class="legend-item">
+                  <span class="legend-icon-swatch" style="background: #38bdf8;"></span>
+                  <span>ทิศทางที่ลมพัดไป (<span class="math-font">ψ_i</span> Wind-to)</span>
                 </div>
-                <svg id="graphSvg" viewBox="0 0 820 500" role="img" aria-label="Interactive graph signal reconstruction">
-                  <path class="thailand-ghost" d="M345,35 C292,52 270,92 292,130 C309,158 286,195 309,222 C331,247 324,286 347,307 C369,328 368,354 356,382 C347,405 350,447 378,474 C395,459 405,427 399,397 C394,370 417,348 414,321 C411,292 443,272 436,242 C429,211 453,188 446,159 C438,128 467,91 447,58 C427,26 386,22 345,35 Z"/>
-                </svg>
-              </div>
-
-              <div class="metric-row">
-                <div class="metric-panel"><div class="metric-label">RMSE · hidden</div><div class="metric-value" id="mRmse">—</div><div class="metric-sub">lower is better</div></div>
-                <div class="metric-panel"><div class="metric-label">MAE</div><div class="metric-value" id="mMae">—</div><div class="metric-sub">absolute error</div></div>
-                <div class="metric-panel"><div class="metric-label">Worst error</div><div class="metric-value" id="mMax">—</div><div class="metric-sub">max |x − x̂|</div></div>
-                <div class="metric-panel"><div class="metric-label">Coverage radius</div><div class="metric-value" id="mCoverage">—</div><div class="metric-sub">toy coordinate unit</div></div>
-                <div class="metric-panel"><div class="metric-label">σmin(CₛUᵣ)</div><div class="metric-value" id="mSigma">—</div><div class="metric-sub">spectral conditioning</div></div>
+                <div class="legend-item">
+                  <span class="legend-icon-swatch" style="background: #e11d48;"></span>
+                  <span>จุดความร้อนจริง NASA FIRMS (<span class="math-font">Y_i = 1</span>)</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="compare-panel">
-            <div class="compare-head"><b>เปรียบเทียบ RMSE ภายใต้ K, q และ r เดียวกัน</b><span>คำนวณจาก toy graph เดียวกัน</span></div>
-            <div class="compare-list" id="compareList"></div>
-          </div>
-        </div>
-      </div>
-    </section>
+          <!-- Cell Inspector Panel -->
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div class="cell-inspector-panel">
+              <div class="inspector-header">
+                <div class="inspector-title">
+                  <span>📍 Cell Inspector</span>
+                </div>
+                <span class="inspector-coords" id="inspectorCoords">19.40°N, 98.60°E</span>
+              </div>
 
-    <section class="section soft" id="math">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <div class="kicker">Mathematical core</div>
-            <h2>คณิตศาสตร์เป็นแกน — เว็บเป็นเพียง PoC</h2>
-            <p class="section-lead">ลำดับการทำงานต้องเริ่มจาก model และ sampling strategy ก่อนจึงนำผลมาสื่อสารผ่านเว็บ</p>
-          </div>
-        </div>
+              <div id="inspectorExclusionBadge" class="card-badge badge-emerald">
+                Active Test Sample (E_i = 0)
+              </div>
 
-        <div class="math-flow">
-          <article class="math-step reveal">
-            <span class="step-no">STEP 01</span><h3>สร้างกราฟ</h3>
-            <p>สถานีเป็นโหนด และความสัมพันธ์ระหว่างสถานีเป็นน้ำหนักของ edge</p>
-            <div class="eq"><math><mrow><mi>G</mi><mo>=</mo><mo>(</mo><mi>V</mi><mo>,</mo><mi>E</mi><mo>,</mo><mi>W</mi><mo>)</mo></mrow></math></div>
-          </article>
-          <article class="math-step reveal">
-            <span class="step-no">STEP 02</span><h3>Graph Laplacian</h3>
-            <p>แปลงโครงสร้างเครือข่ายไปสู่ฐานเชิงสเปกตรัมผ่าน eigendecomposition</p>
-            <div class="eq"><math><mrow><mi>L</mi><mo>=</mo><mi>D</mi><mo>−</mo><mi>W</mi><mo>,</mo><mspace width=".4em"/><mi>L</mi><mo>=</mo><mi>U</mi><mi>Λ</mi><msup><mi>U</mi><mi>T</mi></msup></mrow></math></div>
-          </article>
-          <article class="math-step reveal">
-            <span class="step-no">STEP 03</span><h3>Low-frequency model</h3>
-            <p>ตรวจสอบก่อนว่าสัญญาณ PM2.5 มีโครงสร้าง smooth เพียงพอ ไม่สมมติ bandlimited อัตโนมัติ</p>
-            <div class="eq"><math><mrow><mi>x</mi><mo>≈</mo><msub><mi>U</mi><mi>r</mi></msub><mi>α</mi></mrow></math></div>
-          </article>
-          <article class="math-step reveal">
-            <span class="step-no">STEP 04</span><h3>Sampling</h3>
-            <p>เลือกเซต S ภายใต้ K เดียวกัน แล้วเก็บค่าที่สังเกตได้ผ่าน sampling matrix</p>
-            <div class="eq"><math><mrow><mi>y</mi><mo>=</mo><msub><mi>C</mi><mi>S</mi></msub><mi>x</mi></mrow></math></div>
-          </article>
-          <article class="math-step reveal">
-            <span class="step-no">STEP 05</span><h3>Reconstruction</h3>
-            <p>สร้างค่าทั้งเครือข่ายกลับ แล้วเปรียบเทียบเฉพาะจุด held-out กับ ground truth จริง</p>
-            <div class="eq"><math><mrow><mover><mi>x</mi><mo>^</mo></mover><mo>=</mo><msub><mi>U</mi><mi>r</mi></msub><msup><mrow><mo>(</mo><msub><mi>C</mi><mi>S</mi></msub><msub><mi>U</mi><mi>r</mi></msub><mo>)</mo></mrow><mo>†</mo></msup><mi>y</mi></mrow></math></div>
-          </article>
-        </div>
-      </div>
-    </section>
+              <div class="inspector-metric-grid">
+                <div class="inspector-metric-card">
+                  <span class="inspector-metric-label">ความน่าจะเป็น (π_i)</span>
+                  <span class="inspector-metric-val" id="inspectorProb" style="color: #db2777;">48.2%</span>
+                </div>
+                <div class="inspector-metric-card">
+                  <span class="inspector-metric-label">คะแนนเครือข่าย (Φ_i)</span>
+                  <span class="inspector-metric-val" id="inspectorPhiW" style="color: #0284c7;">1.428</span>
+                </div>
+                <div class="inspector-metric-card">
+                  <span class="inspector-metric-label">เฉพาะระยะทาง (Φ_i^(D))</span>
+                  <span class="inspector-metric-val" id="inspectorPhiD" style="color: #d97706;">0.985</span>
+                </div>
+                <div class="inspector-metric-card">
+                  <span class="inspector-metric-label">สถานีใกล้ที่สุด</span>
+                  <span class="inspector-metric-val" id="inspectorNearest" style="font-size: 11px; color: #7c3aed;">Pai (18 km)</span>
+                </div>
+              </div>
 
-    <section class="section" id="questions">
-      <div class="container">
-        <div class="section-head reveal">
-          <div><div class="kicker">Research questions</div><h2>4 คำถามหลักที่เว็บต้องช่วย “มองเห็น”</h2></div>
-        </div>
-        <div class="rq-grid">
-          <article class="rq reveal"><div class="rq-code">RQ1</div><div><h3>Sensor Budget</h3><p>เมื่อ K เท่ากัน วิธีใดให้ reconstruction error ต่ำที่สุด?</p></div></article>
-          <article class="rq reveal"><div class="rq-code">RQ2</div><div><h3>Graph Construction</h3><p>Distance, elevation, historical correlation หรือ hybrid graph ส่งผลต่อ error ต่างกันอย่างไร?</p></div></article>
-          <article class="rq reveal"><div class="rq-code">RQ3</div><div><h3>Data-loss Robustness</h3><p>เมื่อสูญเสียข้อมูล q จุด วิธีใดรักษาความแม่นยำได้ดีกว่า?</p></div></article>
-          <article class="rq reveal"><div class="rq-code">RQ4</div><div><h3>Geometry vs Information</h3><p>การกระจายสถานีให้ทั่วเชิงพื้นที่ สอดคล้องกับการรักษาข้อมูลเชิงสเปกตรัมมากเพียงใด?</p></div></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section soft" id="method">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <div class="kicker">Experimental integrity</div>
-            <h2>ออกแบบให้ผล “ตรวจสอบได้” ไม่ใช่แค่ภาพสวย</h2>
-            <p class="section-lead">Research Mode ต้องเริ่มจากสถานีที่มีค่าจริงสำหรับ validation และป้องกัน data leakage ตั้งแต่ต้น</p>
-          </div>
-        </div>
-
-        <div class="integrity-grid">
-          <article class="timeline-card reveal">
-            <h3>Temporal split</h3>
-            <div class="timeline">
-              <div class="timeline-item"><div class="timeline-dot">1</div><div><b>Past / Graph period</b><span>สร้าง W และ historical correlation โดยไม่เห็นข้อมูล test</span></div></div>
-              <div class="timeline-item"><div class="timeline-dot">2</div><div><b>Validation period</b><span>เลือกพารามิเตอร์ เช่น σ, r หรือ graph formulation</span></div></div>
-              <div class="timeline-item"><div class="timeline-dot">3</div><div><b>Future / Held-out test</b><span>ประเมิน reconstruction บนข้อมูลที่ไม่ถูกใช้ในการสร้างกราฟ</span></div></div>
-              <div class="timeline-item"><div class="timeline-dot">4</div><div><b>Failure experiment</b><span>ตัดข้อมูลบาง sensor แล้ว reconstruct ซ้ำภายใต้ protocol เดียวกัน</span></div></div>
+              <!-- Live Step-by-Step Calculation Breakdown -->
+              <div class="inspector-calc-breakdown" id="inspectorBreakdown"></div>
             </div>
-          </article>
 
-          <article class="integrity-card reveal">
-            <h3>Guardrails</h3>
-            <div class="guardrail"><div class="guardrail-icon">✓</div><div><b>Same candidate pool</b><span>ทุก sampling method เลือกจากสถานีชุดเดียวกัน</span></div></div>
-            <div class="guardrail"><div class="guardrail-icon">✓</div><div><b>Same K, timestamps & reconstruction</b><span>ควบคุมเงื่อนไขเพื่อให้ต่างกันที่วิธีเลือกตำแหน่งจริง ๆ</span></div></div>
-            <div class="guardrail"><div class="guardrail-icon">✓</div><div><b>Random repeats</b><span>Random baseline ต้องทำหลาย seed ไม่ใช้ผลจากการสุ่มครั้งเดียว</span></div></div>
-            <div class="guardrail"><div class="guardrail-icon">✓</div><div><b>No leakage</b><span>Historical correlation ห้ามใช้ช่วง test มาสร้าง graph weight</span></div></div>
-            <div class="guardrail"><div class="guardrail-icon">✓</div><div><b>No predetermined winner</b><span>สมมติฐานไม่เขียนว่า GSP “ต้องชนะ”; ให้ข้อมูลจริงเป็นผู้ตอบ</span></div></div>
-          </article>
+            <!-- Quick Live API & Ref Actions -->
+            <div class="enterprise-card" style="padding: 14px;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">🔗 ข้อมูลสด & แหล่งอ้างอิง</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-ref" data-ref="openmeteo" id="btnLiveFetch" style="flex: 1; justify-content: center;">
+                  <span>⚡ Live Open-Meteo API</span>
+                </button>
+                <button class="btn-ref" data-ref="air4thai" style="flex: 1; justify-content: center;">
+                  <span>📡 Air4Thai Data</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="section" id="metrics">
+    <!-- =========================================================================
+         TAB 2: 📊 การเปรียบเทียบโมเดล & แผนภูมิ (Model Benchmarks & Metrics)
+         ========================================================================= -->
+    <div class="tab-pane" id="tab-metrics">
       <div class="container">
-        <div class="section-head reveal">
-          <div><div class="kicker">Evaluation metrics</div><h2>ไม่ได้ดูแค่ RMSE ตัวเดียว</h2><p class="section-lead">วิเคราะห์ทั้งความแม่นยำ การครอบคลุมพื้นที่ สภาพเชิงสเปกตรัม และการเสื่อมหลัง sensor failure</p></div>
+        <!-- 4 Hero Stat Cards -->
+        <div class="metrics-hero-row">
+          <div class="stat-card stat-rose">
+            <div class="stat-top-row">
+              <span class="stat-label">Brier Score (M2b)</span>
+              <span class="stat-diff-badge positive">-26.3% vs M0</span>
+            </div>
+            <div class="stat-value">0.0418</div>
+            <div class="stat-subtext">ยิ่งต่ำยิ่งแม่นยำ (M0 = 0.0567, M-1 = 0.0752)</div>
+          </div>
+
+          <div class="stat-card stat-emerald">
+            <div class="stat-top-row">
+              <span class="stat-label">PR-AUC (M2b)</span>
+              <span class="stat-diff-badge positive">+57.7% vs M0</span>
+            </div>
+            <div class="stat-value">0.4480</div>
+            <div class="stat-subtext">Baseline Prevalence Floor = 0.0820 (8.2%)</div>
+          </div>
+
+          <div class="stat-card stat-primary">
+            <div class="stat-top-row">
+              <span class="stat-label">Paired Bootstrap ΔPR-AUC</span>
+              <span class="stat-diff-badge positive">p &lt; 0.001</span>
+            </div>
+            <div class="stat-value" id="bootstrapCiRange">[+0.124, +0.204]</div>
+            <div class="stat-subtext">95% CI (500 Block Replications)</div>
+          </div>
+
+          <div class="stat-card stat-amber">
+            <div class="stat-top-row">
+              <span class="stat-label">ROC-AUC (M2b)</span>
+              <span class="stat-diff-badge positive">+0.102 vs M0</span>
+            </div>
+            <div class="stat-value">0.8870</div>
+            <div class="stat-subtext">M0 Baseline = 0.7850, M1 = 0.8210</div>
+          </div>
         </div>
-        <div class="metric-cards">
-          <article class="metric-card reveal"><div class="eq"><math><mrow><mi>RMSE</mi><mo>=</mo><msqrt><mfrac><mn>1</mn><mi>m</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>m</mi></munderover><msup><mrow><mo>(</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><msub><mover><mi>x</mi><mo>^</mo></mover><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup></msqrt></mrow></math></div><h3>Reconstruction accuracy</h3><p>สรุป error ที่ให้น้ำหนักกับความคลาดเคลื่อนขนาดใหญ่</p></article>
-          <article class="metric-card reveal"><div class="eq"><math><mrow><mi>MAE</mi><mo>=</mo><mfrac><mn>1</mn><mi>m</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>m</mi></munderover><mo>|</mo><msub><mi>x</mi><mi>i</mi></msub><mo>−</mo><msub><mover><mi>x</mi><mo>^</mo></mover><mi>i</mi></msub><mo>|</mo></mrow></math></div><h3>Absolute error</h3><p>อ่านง่ายและทนต่อ outlier กว่า RMSE ในบางกรณี</p></article>
-          <article class="metric-card reveal"><div class="eq"><math><mrow><mi>h</mi><mo>(</mo><mi>S</mi><mo>)</mo><mo>=</mo><munder><mo>max</mo><mrow><mi>v</mi><mo>∈</mo><mi>V</mi></mrow></munder><munder><mo>min</mo><mrow><mi>s</mi><mo>∈</mo><mi>S</mi></mrow></munder><mi>d</mi><mo>(</mo><mi>v</mi><mo>,</mo><mi>s</mi><mo>)</mo></mrow></math></div><h3>Coverage radius</h3><p>วัดช่องว่างเชิงพื้นที่ที่ไกลจาก sensor ที่เลือกมากที่สุด</p></article>
-          <article class="metric-card reveal"><div class="eq"><math><mrow><msub><mi>D</mi><mi>q</mi></msub><mo>=</mo><mfrac><mrow><msub><mi>E</mi><mi>q</mi></msub><mo>−</mo><msub><mi>E</mi><mn>0</mn></msub></mrow><msub><mi>E</mi><mn>0</mn></msub></mfrac></mrow></math></div><h3>Failure degradation</h3><p>วัดว่า error เพิ่มขึ้นเท่าใดหลังสูญเสีย sensor จำนวน q จุด</p></article>
+
+        <!-- Stepwise Model Table -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 10px;">ตารางเปรียบเทียบลำดับแบบจำลอง 5 ระดับ (Stepwise Model Hierarchy)</h3>
+          <div class="stepwise-table-container">
+            <table class="stepwise-table">
+              <thead>
+                <tr>
+                  <th>แบบจำลอง (Model)</th>
+                  <th>ตัวแปรที่นำเข้า (Input Features)</th>
+                  <th>คำถามที่ใช้ทดสอบ (Research Purpose)</th>
+                  <th>Brier Score ↓</th>
+                  <th>PR-AUC ↑</th>
+                  <th>ROC-AUC ↑</th>
+                  <th>Log Loss ↓</th>
+                  <th>ΔBS (vs M0)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr data-row-model="M-1">
+                  <td><span class="table-model-pill pill-m-neg1">M-1</span></td>
+                  <td>ค่าเฉลี่ยความชุกคงที่ในชุดฝึก (Ȳ_train)</td>
+                  <td>จุดอ้างอิงต่ำสุด (Baseline floor)</td>
+                  <td class="table-val-mono">0.07520</td>
+                  <td class="table-val-mono">0.0820</td>
+                  <td class="table-val-mono">0.5000</td>
+                  <td class="table-val-mono">0.2830</td>
+                  <td class="table-val-mono" style="color: #ef4444;">+0.01850</td>
+                </tr>
+                <tr data-row-model="M0">
+                  <td><span class="table-model-pill pill-m0">M0 Baseline</span></td>
+                  <td>อากาศ + ภูมิประเทศ + พืชพรรณ + ฤดูกาล + C_i</td>
+                  <td>ปัจจัยกายภาพและสถิติเดิมทำนายได้ดีเพียงใด</td>
+                  <td class="table-val-mono">0.05670</td>
+                  <td class="table-val-mono">0.2840</td>
+                  <td class="table-val-mono">0.7850</td>
+                  <td class="table-val-mono">0.2110</td>
+                  <td class="table-val-mono">0.00000 (Ref)</td>
+                </tr>
+                <tr data-row-model="M1">
+                  <td><span class="table-model-pill pill-m1">M1</span></td>
+                  <td>M0 + ค่าความผิดปกติสถานีใกล้สุด (a_nearest)</td>
+                  <td>ฝุ่นสถานีเดี่ยวใกล้พื้นที่ให้ข้อมูลเพิ่มหรือไม่</td>
+                  <td class="table-val-mono">0.05120</td>
+                  <td class="table-val-mono">0.3390</td>
+                  <td class="table-val-mono">0.8210</td>
+                  <td class="table-val-mono">0.1940</td>
+                  <td class="table-val-mono" style="color: #059669;">-0.00550</td>
+                </tr>
+                <tr data-row-model="M2a">
+                  <td><span class="table-model-pill pill-m2a">M2a</span></td>
+                  <td>M0 + คะแนนเครือข่ายถ่วงระยะทาง (Φ_i^(D))</td>
+                  <td>การรวมหลายสถานีดีกว่าสถานีเดี่ยวหรือไม่</td>
+                  <td class="table-val-mono">0.04680</td>
+                  <td class="table-val-mono">0.3920</td>
+                  <td class="table-val-mono">0.8540</td>
+                  <td class="table-val-mono">0.1790</td>
+                  <td class="table-val-mono" style="color: #059669;">-0.00990</td>
+                </tr>
+                <tr data-row-model="M2b" class="highlight-row">
+                  <td><span class="table-model-pill pill-m2b">M2b Proposed</span></td>
+                  <td>M0 + คะแนนเครือข่ายถ่วงระยะทางและลม (Φ_i)</td>
+                  <td>การให้น้ำหนักตามทิศลมช่วยเพิ่มความแม่นยำสูงสุดหรือไม่</td>
+                  <td class="table-val-mono val-best">0.04180</td>
+                  <td class="table-val-mono val-best">0.4480</td>
+                  <td class="table-val-mono val-best">0.8870</td>
+                  <td class="table-val-mono val-best">0.1620</td>
+                  <td class="table-val-mono val-best">-0.01490</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 4 Precision Canvas Charts -->
+        <div class="charts-grid-2x2">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title-area">
+                <span class="chart-title">Reliability Diagram (Probability Calibration)</span>
+                <span class="chart-subtitle">ความสอดคล้องระหว่างค่าความน่าจะเป็นที่พยากรณ์กับสัดส่วนไฟจริง</span>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="calibrationChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title-area">
+                <span class="chart-title">Precision–Recall Curve (PR-AUC)</span>
+                <span class="chart-subtitle">การประเมินบนชุดข้อมูล Imbalanced เทียบกับเส้น Prevalence Floor</span>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="prCurveCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title-area">
+                <span class="chart-title">Paired Block-Bootstrap Distribution (95% CI)</span>
+                <span class="chart-subtitle">การทดสอบนัยสำคัญทางสถิติของผลต่าง ΔPR-AUC (M2b − M0)</span>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="bootstrapChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div class="chart-title-area">
+                <span class="chart-title">Lead-Time Horizon Decay (Δ = 6, 12, 24, 48h)</span>
+                <span class="chart-subtitle">การลดทอนของสัญญาณเครือข่าย PM2.5 เมื่อขยายเวลาพยากรณ์</span>
+              </div>
+            </div>
+            <div class="chart-canvas-container">
+              <canvas id="leadTimeChartCanvas"></canvas>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="section soft" id="scope">
+    <!-- =========================================================================
+         TAB 3: 📐 แกนคณิตศาสตร์ & การปรับค่า (Mathematical Formulation & Parameters)
+         ========================================================================= -->
+    <div class="tab-pane" id="tab-math">
       <div class="container">
-        <div class="section-head reveal">
-          <div><div class="kicker">Scope & originality</div><h2>วางตำแหน่งความใหม่ให้ “ตรงและปลอดภัย”</h2></div>
+        <!-- Mathematical Parameter Controls -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px;">⚙️ การปรับพารามิเตอร์แบบจำลองเชิงคณิตศาสตร์ (Mathematical Parameters)</h3>
+          <div class="grid-3">
+            <div class="control-box">
+              <div class="control-label-row">
+                <span class="control-label">ระยะอ้างอิงน้ำหนัก (<span class="math-font">ℓ</span>):</span>
+                <span class="control-value-badge" id="valEll">50 km</span>
+              </div>
+              <input type="range" id="paramEll" min="25" max="100" step="25" value="50" />
+              <p style="font-size: 11px; color: var(--text-subtle);">การลดทอนน้ำหนักตามระยะทางใน <span class="math-font">D_ij = exp(-d_ij / ℓ)</span></p>
+            </div>
+
+            <div class="control-box">
+              <div class="control-label-row">
+                <span class="control-label">ความเข้มทิศทางลม (<span class="math-font">κ</span>):</span>
+                <span class="control-value-badge" id="valKappa">1.0</span>
+              </div>
+              <input type="range" id="paramKappa" min="0" max="2.0" step="0.5" value="1.0" />
+              <p style="font-size: 11px; color: var(--text-subtle);">การบังคับทิศลมใน <span class="math-font">W_ij = exp(κ[cos(θ - ψ) - 1])</span></p>
+            </div>
+
+            <div class="control-box">
+              <div class="control-label-row">
+                <span class="control-label">รัศมีสถานีสูงสุด (<span class="math-font">R_max</span>):</span>
+                <span class="control-value-badge" id="valRMax">150 km</span>
+              </div>
+              <input type="range" id="paramRMax" min="50" max="150" step="50" value="150" />
+              <p style="font-size: 11px; color: var(--text-subtle);">ขอบเขตความครอบคลุมของสถานี Air4Thai</p>
+            </div>
+          </div>
         </div>
-        <div class="scope-grid">
-          <article class="scope-card primary reveal">
-            <div class="scope-tag">WHAT THIS PROJECT IS</div>
-            <h3>Applied & Computational Mathematics</h3>
-            <p>ความใหม่อยู่ที่การออกแบบการศึกษาเชิงระบบสำหรับบริบทเครือข่าย PM2.5 ของประเทศไทย—not claiming a new GSP theory.</p>
-            <ul>
-              <li>เปรียบเทียบ Random / Coverage / GSP / Robust GSP ภายใต้ K เดียวกัน</li>
-              <li>ศึกษาผลของ graph construction ต่อ reconstruction</li>
-              <li>วัด trade-off ระหว่าง geometry, spectral information และ robustness</li>
-              <li>ใช้ webapp เพื่อ reproduce และสื่อสาร mathematical experiment</li>
+
+        <!-- 6 Step Mathematical Cards -->
+        <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 12px;">📐 ลำดับสูตรและสมการคณิตศาสตร์ (Step-by-Step Mathematical Core)</h3>
+        <div class="grid-3">
+          <!-- Step 1 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 01 · ANOMALY</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">ความผิดปกติ PM2.5 (z_j, a_j)</h4>
+            <div class="formula-display collapsible" data-tex="z_j(t) = \frac{p_j(t) - \operatorname{med}_j(t)}{1.4826 \cdot \operatorname{MAD}_j(t) + \varepsilon}, \quad a_j(t) = \max(0, z_j(t))"></div>
+            <p class="math-explanation">ใช้ Median และ MAD คำนวณจากหน้าต่างเวลาย้อนหลัง เพื่อความทนทานต่อ Outliers และตัดระดับฝุ่นพื้นฐาน</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 02 · WEIGHTS</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">น้ำหนักระยะทาง & ทิศทางลม (D_ij, W_ij)</h4>
+            <div class="formula-display collapsible" data-tex="D_{ij} = \exp\left(-\frac{d_{ij}}{\ell}\right), \quad W_{ij}(t) = \exp\left(\kappa [\cos(\theta_{ij} - \psi_i(t)) - 1]\right)"></div>
+            <p class="math-explanation"><span class="math-font">d_ij</span> คือระยะทาง Haversine, <span class="math-font">θ_ij</span> คือมุมทิศ, และ <span class="math-font">ψ_i(t)</span> คือทิศทางลมพัดไป</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 03 · SCORES</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">คะแนนเครือข่าย (Φ_i^(D), Φ_i)</h4>
+            <div class="formula-display collapsible" data-tex="q_{ij} = D_{ij} W_{ij}, \quad \Phi_i(t) = \frac{\sum_{j=1}^M q_{ij}(t) a_j(t)}{\sum_{j=1}^M q_{ij}(t) + \varepsilon}"></div>
+            <p class="math-explanation">รวมสัญญาณความผิดปกติจากทุกสถานีภายในรัศมี <span class="math-font">R_max</span> โดยถ่วงน้ำหนักรวมระยะทางและทิศลม</p>
+          </div>
+
+          <!-- Step 4 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 04 · GLM</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">Logistic GLM (π_i, 24h)</h4>
+            <div class="formula-display collapsible" data-tex="\pi_i(t) = \frac{1}{1 + \exp(-\eta_i(t))}, \quad \eta_i(t) = \beta_0 + \beta^\top X_i(t)"></div>
+            <p class="math-explanation">แบบจำลองเชิงเส้นนัยทั่วไปแบบลอจิสติก ตีความสัมประสิทธิ์ <span class="math-font">β</span> และ Odds Ratio ได้อย่างโปร่งใส</p>
+          </div>
+
+          <!-- Step 5 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 05 · EXCLUSION</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">การตัดข้อมูล (E_i)</h4>
+            <div class="formula-display collapsible" data-tex="E_i(t; \tau_{\text{excl}}, r_{\text{excl}}) = \begin{cases} 1 & \text{หากพบไฟเดิมในรัศมี } r_{\text{excl}} \\ 0 & \text{กรณีอื่น} \end{cases}"></div>
+            <p class="math-explanation">ตัดกรณีที่ไฟกำลังลุกไหม้อยู่แล้วออกจากการทดสอบ เพื่อให้ประเมินเฉพาะการพยากรณ์ก่อนเกิดเหตุจริง</p>
+          </div>
+
+          <!-- Step 6 -->
+          <div class="math-card">
+            <div class="math-card-header">
+              <span class="math-step-tag">STEP 06 · METRICS</span>
+              <button class="math-toggle-btn"><span>ซ่อนสมการ ▴</span></button>
+            </div>
+            <h4 class="card-title">Brier Score & CI</h4>
+            <div class="formula-display collapsible" data-tex="\operatorname{BS} = \frac{1}{N} \sum_{k=1}^N (\pi_k - Y_k)^2, \quad 95\%\text{ CI via Bootstrap}"></div>
+            <p class="math-explanation">ประเมินความแม่นยำของความน่าจะเป็นและทดสอบความไม่แน่นอนด้วย Paired Time-Block Bootstrap</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================================
+         TAB 4: 🧪 เกณฑ์วินิจฉัย & วิธีวิจัย (Scientific Scenarios & Protocol)
+         ========================================================================= -->
+    <div class="tab-pane" id="tab-protocol">
+      <div class="container">
+        <!-- Diagnostic Scenarios Table -->
+        <div style="margin-bottom: 24px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 10px;">🧪 เกณฑ์การวินิจฉัยและการตีความทางวิทยาศาสตร์ (Pre-specified Diagnostic Scenarios)</h3>
+          <div class="enterprise-card" style="padding: 0; overflow: hidden;">
+            <table class="scenario-matrix-table">
+              <thead>
+                <tr>
+                  <th style="width: 120px;">สถานการณ์</th>
+                  <th>พฤติกรรมของแบบจำลอง (Empirical Pattern)</th>
+                  <th>การตีความทางวิทยาศาสตร์และคณิตศาสตร์ (Scientific Finding)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="scenario-code-tag scenario-tag-a">Scenario A</span></td>
+                  <td><span class="math-font">M_2b > M_2a > M_1 > M_0</span> อย่างสม่ำเสมอ และผลยังคงอยู่เมื่อเพิ่ม <span class="math-font">τ_excl, r_excl</span></td>
+                  <td>สนับสนุนว่าสัญญาณเครือข่าย PM2.5 และการให้น้ำหนักตามทิศทางลมให้ข้อมูลพยากรณ์ที่มีคุณค่าจริงเหนือปัจจัยกายภาพ</td>
+                </tr>
+                <tr>
+                  <td><span class="scenario-code-tag scenario-tag-b">Scenario B</span></td>
+                  <td><span class="math-font">M_2a > M_1 > M_0</span> แต่ <span class="math-font">M_2b ≈ M_2a</span></td>
+                  <td>การรวมข้อมูลหลายสถานีตามระยะทางมีประโยชน์ แต่ทิศทางลมเฉลี่ยไม่ได้ช่วยเพิ่มข้อมูลอย่างมีนัยสำคัญ</td>
+                </tr>
+                <tr>
+                  <td><span class="scenario-code-tag scenario-tag-c">Scenario C</span></td>
+                  <td><span class="math-font">M_1 > M_0</span> แต่ <span class="math-font">M_2a ≈ M_1</span></td>
+                  <td>PM2.5 สถานีใกล้ที่สุดมีประโยชน์ แต่การรวมหลายสถานีไม่เพิ่มข้อมูลเหนือสถานีเดี่ยว</td>
+                </tr>
+                <tr>
+                  <td><span class="scenario-code-tag scenario-tag-d">Scenario D</span></td>
+                  <td><span class="math-font">M_0 ≈ M_1 ≈ M_2a ≈ M_2b</span></td>
+                  <td>เครือข่าย PM2.5 ไม่ได้ให้ข้อมูลพยากรณ์เพิ่มเหนือปัจจัยกายภาพและสถิติเดิมของพื้นที่</td>
+                </tr>
+                <tr>
+                  <td><span class="scenario-code-tag scenario-tag-e">Scenario E</span></td>
+                  <td>ประโยชน์ของ PM2.5 มีเฉพาะช่วงสั้น (<span class="math-font">Δ = 6h</span>) และหายไปเมื่อเพิ่ม <span class="math-font">τ_excl, r_excl</span></td>
+                  <td>สัญญาณ PM2.5 สะท้อน <strong>ควันไฟระยะแรก หรือไฟที่เริ่มติดแล้ว</strong> ไม่ใช่การพยากรณ์ก่อนเกิดเหตุระยะยาว</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Protocol & Guardrails -->
+        <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 10px;">🔒 ระเบียบวิธีวิจัยเพื่อความซื่อสัตย์ทางวิชาการ (Research Guardrails)</h3>
+        <div class="grid-2">
+          <div class="enterprise-card">
+            <h4 class="card-title" style="margin-bottom: 8px;">🛡️ Rolling-Origin Backtesting & Strict Temporal Split</h4>
+            <ul style="padding-left: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+              <li><strong>Fold A:</strong> ฝึกด้วยข้อมูลช่วงที่ 1 → ทดสอบช่วงที่ 2 ตามลำดับเวลาจริง</li>
+              <li><strong>Fold B:</strong> ขยายชุดฝึกรวมช่วงที่ 1+2 → ทดสอบช่วงที่ 3</li>
+              <li><strong>Fold C:</strong> ขยายชุดฝึกรวมช่วงที่ 1+2+3 → ทดสอบช่วงที่ 4</li>
+              <li><strong>Zero Leakage:</strong> สถิติ Median/MAD, แนวโน้ม <span class="math-font">C_i</span> และสัมประสิทธิ์ GLM คำนวณจากอดีตเท่านั้น ห้ามเห็นข้อมูล Test</li>
             </ul>
-          </article>
-          <article class="scope-card reveal">
-            <div class="scope-tag">WHAT THIS PROJECT IS NOT</div>
-            <h3>ไม่ใช่ระบบเตือนภัย PM2.5 แบบเวลาจริง</h3>
-            <p>และไม่ใช่การอ้างว่าเป็นผู้คิด Graph Signal Sampling หรือ Robust GSP ขึ้นใหม่</p>
-            <ul>
-              <li>ไม่สร้างตัวเลขผลการทดลองก่อนมีข้อมูลจริง</li>
-              <li>ไม่ใช้ UI เป็นหลักฐานว่าคณิตศาสตร์ทำงาน</li>
-              <li>ไม่ใช้ข้อมูล test เพื่อสร้าง correlation graph</li>
-              <li>ไม่บังคับ methodology ให้ตามความสวยของเว็บ</li>
-            </ul>
-          </article>
-        </div>
-      </div>
-    </section>
+          </div>
 
-    <section class="section" id="references">
-      <div class="container">
-        <div class="section-head reveal">
-          <div><div class="kicker">Research foundation</div><h2>ฐานอ้างอิงและข้อมูล</h2></div>
-        </div>
-        <div class="refs reveal">
-          <div class="ref"><div class="ref-no">01</div><div><p>Ferrer-Cid, P., Barcelo-Ordinas, J. M., & Garcia-Vidal, J. (2022). <strong>Data reconstruction applications for IoT air pollution sensor networks using graph signal processing.</strong></p><small>Journal of Network and Computer Applications, 205, 103434.</small></div></div>
-          <div class="ref"><div class="ref-no">02</div><div><p>Ferrer-Cid, P., Barcelo-Ordinas, J. M., & Garcia-Vidal, J. (2022). <strong>Graph Signal Reconstruction Techniques for IoT Air Pollution Monitoring Platforms.</strong></p><small>IEEE Internet of Things Journal, 9(24), 25350–25362.</small></div></div>
-          <div class="ref"><div class="ref-no">03</div><div><p>Guler, B., Jayawant, A., Avestimehr, A. S., & Ortega, A. (2019). <strong>Robust Graph Signal Sampling.</strong></p><small>ICASSP 2019, 7520–7524.</small></div></div>
-          <div class="ref"><div class="ref-no">04</div><div><p><strong>Primary dataset:</strong> ข้อมูล PM2.5 จากสถานีตรวจวัด Air4Thai / กรมควบคุมมลพิษ</p><small>Research pipeline ต้อง archive ข้อมูลที่ใช้จริงอย่าง reproducible ก่อนวิเคราะห์ผล</small></div></div>
+          <div class="enterprise-card">
+            <h4 class="card-title" style="margin-bottom: 8px;">🔒 Model Lock & Confirmatory Evaluation</h4>
+            <ul style="padding-left: 18px; font-size: 13px; color: var(--text-muted); line-height: 1.8;">
+              <li><strong>Model Lock Document:</strong> ล็อกสูตร, รายชื่อสถานี Air4Thai, ขนาดกริด <span class="math-font">0.1°</span>, พารามิเตอร์ <span class="math-font">ℓ, κ, R_max, τ_excl, r_excl</span> ก่อนเปิด Test Set</li>
+              <li><strong>Final Locked Test:</strong> เปิดชุดทดสอบสุดท้าย <strong>เพียงครั้งเดียว</strong> เพื่อเป็นผลยืนยันหลัก (Confirmatory Results)</li>
+              <li><strong>No Data Dredging:</strong> ห้ามนำผลชุดทดสอบสุดท้ายกลับมาจูนพารามิเตอร์หรือแก้สมการโดยเด็ดขาด</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
+
+    <!-- =========================================================================
+         TAB 5: 📚 คลังแหล่งอ้างอิง & ข้อมูลเปิด (Open Data & Reference Hub)
+         ========================================================================= -->
+    <div class="tab-pane" id="tab-refs">
+      <div class="container">
+        <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px;">📚 คลังข้อมูลสาธารณะและเอกสารอ้างอิงทางวิชาการ (Open Data & Citations)</h3>
+        <div class="grid-2">
+          <!-- Ref Card 1 -->
+          <div class="ref-source-card">
+            <div class="ref-source-header">
+              <span class="ref-source-title">Open-Meteo Air Quality & Weather API</span>
+              <span class="ref-badge-free">100% Free / CC BY 4.0</span>
+            </div>
+            <p><b>หน่วยงาน:</b> Open-Meteo GmbH / ECMWF</p>
+            <p><b>ตัวแปร:</b> PM2.5, 10m Wind Speed, Wind Direction (u,v), 2m Temp, RH</p>
+            <p><b>บทบาท:</b> ใช้ดึงข้อมูลสดในการสาธิตแบบ Real-time</p>
+            <div class="ref-endpoint-url">https://air-quality-api.open-meteo.com/v1/air-quality</div>
+          </div>
+
+          <!-- Ref Card 2 -->
+          <div class="ref-source-card">
+            <div class="ref-source-header">
+              <span class="ref-source-title">Air4Thai / กรมควบคุมมลพิษ (PCD)</span>
+              <span class="ref-badge-free">Free Public Data</span>
+            </div>
+            <p><b>หน่วยงาน:</b> กรมควบคุมมลพิษ กระทรวงทรัพยากรธรรมชาติและสิ่งแวดล้อม</p>
+            <p><b>ตัวแปร:</b> PM2.5 รายชั่วโมงและพิกัดสถานีตรวจวัดภาคพื้นดิน</p>
+            <p><b>บทบาท:</b> คำนวณความผิดปกติ <span class="math-font">z_j, a_j</span> และคะแนนเครือข่าย <span class="math-font">Φ_i^(D), Φ_i</span></p>
+            <div class="ref-endpoint-url">http://air4thai.pcd.go.th / EnviLink Services</div>
+          </div>
+
+          <!-- Ref Card 3 -->
+          <div class="ref-source-card">
+            <div class="ref-source-header">
+              <span class="ref-source-title">NASA FIRMS / VIIRS Active Fire Hotspots</span>
+              <span class="ref-badge-free">NASA Open Data</span>
+            </div>
+            <p><b>หน่วยงาน:</b> NASA Earthdata / LANCE</p>
+            <p><b>ตัวแปร:</b> Active Fire Hotspots 375m I-Band (Suomi-NPP & NOAA-20/21)</p>
+            <p><b>บทบาท:</b> กำหนดตัวแปรคำตอบ <span class="math-font">Y_i(t; 24h)</span> และเกณฑ์ตัดข้อมูล <span class="math-font">E_i</span></p>
+            <div class="ref-endpoint-url">https://firms.modaps.eosdis.nasa.gov</div>
+          </div>
+
+          <!-- Ref Card 4 -->
+          <div class="ref-source-card">
+            <div class="ref-source-header">
+              <span class="ref-source-title">ECMWF ERA5-Land & USGS SRTM</span>
+              <span class="ref-badge-free">Copernicus / Public Domain</span>
+            </div>
+            <p><b>หน่วยงาน:</b> Copernicus C3S & USGS</p>
+            <p><b>ตัวแปร:</b> Reanalysis Weather, SRTM Elevation/Slope/Aspect, MODIS NDVI</p>
+            <p><b>บทบาท:</b> สร้างเวกเตอร์กายภาพ <span class="math-font">H_i(t)</span> สำหรับแบบจำลองฐาน M0</p>
+            <div class="ref-endpoint-url">https://cds.climate.copernicus.eu</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
+  <!-- Reference Modal Hub -->
+  <div class="modal-overlay" id="referenceModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="refModalTitle">📚 แหล่งข้อมูลอ้างอิงสาธารณะ</div>
+        <button class="modal-close-btn" id="refModalClose" aria-label="ปิดหน้าต่าง">&times;</button>
+      </div>
+      <div class="modal-body" id="refModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Mathematical Proof Modal -->
+  <div class="modal-overlay" id="mathProofModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="mathModalTitle">📐 รายละเอียดสมการทางคณิตศาสตร์</div>
+        <button class="modal-close-btn" id="mathModalClose" aria-label="ปิดหน้าต่าง">&times;</button>
+      </div>
+      <div class="modal-body" id="mathModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Enterprise Footer -->
   <footer class="footer">
     <div class="container footer-grid">
       <div>
-        <b>PM2.5 × Graph Signal Processing</b>
-        <small>เว็บไซต์ต้นแบบสำหรับสื่อสารโครงงาน YSC สาขาคณิตศาสตร์และสถิติ · ช่องชื่อผู้พัฒนา โรงเรียน และอาจารย์ที่ปรึกษาสามารถเติมภายหลังได้โดยไม่กระทบโครงสร้างหน้าเว็บ</small>
+        <b style="color: var(--text-main);">PM2.5 Network-Based Active-Fire Mathematical Model</b> · YSC 2027 (MA / MAAP)
+        <div style="color: var(--text-subtle); margin-top: 2px;">โรงเรียนห้องสอนศึกษา ในพระอุปถัมภ์ฯ จังหวัดแม่ฮ่องสอน</div>
       </div>
-      <span class="foot-badge">PROOF OF CONCEPT · 2026</span>
+      <div>
+        <span>ผู้พัฒนา: พีชญา สุธรรม, พนิดา นันทภัทร, ฟ้าใส มุ่งศรีโสภณ | ที่ปรึกษา: สาธิต ศิริวัชน์, พรไพลิน ตาใฝ</span>
+      </div>
     </div>
   </footer>
 
-<script>
-(() => {
-  "use strict";
-
-  const NODES = [
-    [0.34,0.08],[0.43,0.10],[0.29,0.15],[0.38,0.17],[0.49,0.16],[0.23,0.23],[0.34,0.25],
-    [0.46,0.25],[0.57,0.23],[0.66,0.27],[0.25,0.33],[0.38,0.34],[0.50,0.34],[0.62,0.36],
-    [0.31,0.44],[0.43,0.43],[0.54,0.45],[0.39,0.53],[0.50,0.55],[0.45,0.64],[0.51,0.70],
-    [0.46,0.76],[0.51,0.81],[0.47,0.87],[0.52,0.91],[0.48,0.95],[0.55,0.97],[0.42,0.92]
-  ];
-
-  const labels = [
-    "N1","N2","N3","N4","N5","N6","N7","N8","N9","N10","N11","N12","N13","N14",
-    "N15","N16","N17","N18","N19","N20","N21","N22","N23","N24","N25","N26","N27","N28"
-  ];
-
-  const trueSignal = NODES.map(([x,y],i) => {
-    const north = 17 * Math.exp(-((x-.38)**2/0.075 + (y-.17)**2/0.045));
-    const central = 8 * Math.exp(-((x-.48)**2/0.07 + (y-.47)**2/0.075));
-    const smooth = 9*Math.sin(1.6*x + .55) + 6*Math.cos(2.1*y-.3) + 4*x;
-    return 18 + north + central + smooth;
-  });
-
-  const dist = (a,b) => Math.hypot(NODES[a][0]-NODES[b][0], NODES[a][1]-NODES[b][1]);
-
-  function zeros(r,c){ return Array.from({length:r},()=>Array(c).fill(0)); }
-  function identity(n){ const A=zeros(n,n); for(let i=0;i<n;i++) A[i][i]=1; return A; }
-  function transpose(A){ return A[0].map((_,j)=>A.map(row=>row[j])); }
-  function matMul(A,B){
-    const r=A.length, k=B.length, c=B[0].length, C=zeros(r,c);
-    for(let i=0;i<r;i++) for(let t=0;t<k;t++){
-      const ait=A[i][t]; if(Math.abs(ait)<1e-15) continue;
-      for(let j=0;j<c;j++) C[i][j]+=ait*B[t][j];
-    }
-    return C;
-  }
-  function matVec(A,v){ return A.map(row=>row.reduce((s,x,j)=>s+x*v[j],0)); }
-  function clone(A){ return A.map(r=>r.slice()); }
-
-  function jacobiEigen(A, maxIter=250, eps=1e-11){
-    const n=A.length, D=clone(A), V=identity(n);
-    for(let iter=0;iter<maxIter;iter++){
-      let p=0,q=1,max=0;
-      for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
-        const val=Math.abs(D[i][j]); if(val>max){max=val;p=i;q=j;}
-      }
-      if(max<eps) break;
-      const app=D[p][p], aqq=D[q][q], apq=D[p][q];
-      const phi=.5*Math.atan2(2*apq, aqq-app);
-      const c=Math.cos(phi), s=Math.sin(phi);
-
-      for(let k=0;k<n;k++){
-        if(k!==p && k!==q){
-          const dkp=D[k][p], dkq=D[k][q];
-          D[k][p]=D[p][k]=c*dkp-s*dkq;
-          D[k][q]=D[q][k]=s*dkp+c*dkq;
-        }
-      }
-      D[p][p]=c*c*app - 2*s*c*apq + s*s*aqq;
-      D[q][q]=s*s*app + 2*s*c*apq + c*c*aqq;
-      D[p][q]=D[q][p]=0;
-      for(let k=0;k<n;k++){
-        const vkp=V[k][p], vkq=V[k][q];
-        V[k][p]=c*vkp-s*vkq;
-        V[k][q]=s*vkp+c*vkq;
-      }
-    }
-    const pairs=Array.from({length:n},(_,i)=>({val:D[i][i], vec:V.map(r=>r[i])})).sort((a,b)=>a.val-b.val);
-    return {values:pairs.map(p=>p.val), vectors:pairs.map(p=>p.vec)};
-  }
-
-  function invert(A){
-    const n=A.length, M=A.map((r,i)=>r.concat(identity(n)[i]));
-    for(let col=0;col<n;col++){
-      let pivot=col;
-      for(let r=col+1;r<n;r++) if(Math.abs(M[r][col])>Math.abs(M[pivot][col])) pivot=r;
-      if(Math.abs(M[pivot][col])<1e-12) return null;
-      [M[col],M[pivot]]=[M[pivot],M[col]];
-      const d=M[col][col];
-      for(let j=0;j<2*n;j++) M[col][j]/=d;
-      for(let r=0;r<n;r++) if(r!==col){
-        const f=M[r][col];
-        for(let j=0;j<2*n;j++) M[r][j]-=f*M[col][j];
-      }
-    }
-    return M.map(r=>r.slice(n));
-  }
-
-  function logDetSPD(A){
-    const n=A.length, L=zeros(n,n);
-    for(let i=0;i<n;i++){
-      for(let j=0;j<=i;j++){
-        let s=A[i][j];
-        for(let k=0;k<j;k++) s-=L[i][k]*L[j][k];
-        if(i===j){
-          if(s<=1e-14) return -1e12;
-          L[i][j]=Math.sqrt(s);
-        } else L[i][j]=s/L[j][j];
-      }
-    }
-    return 2*L.reduce((sum,row,i)=>sum+Math.log(row[i]),0);
-  }
-
-  function buildGraph(){
-    const sigma=.205, W=zeros(NODES.length,NODES.length);
-    for(let i=0;i<NODES.length;i++) for(let j=i+1;j<NODES.length;j++){
-      const d=dist(i,j), w=Math.exp(-(d*d)/(2*sigma*sigma));
-      if(d<.34){ W[i][j]=W[j][i]=w; }
-    }
-    // guaranteed local chain connectivity by nearest neighbor
-    for(let i=0;i<NODES.length;i++){
-      let best=-1,bd=Infinity;
-      for(let j=0;j<NODES.length;j++) if(i!==j && dist(i,j)<bd){bd=dist(i,j);best=j;}
-      if(best>=0 && W[i][best]===0){ const w=Math.exp(-(bd*bd)/(2*sigma*sigma)); W[i][best]=W[best][i]=w; }
-    }
-    const L=zeros(NODES.length,NODES.length);
-    for(let i=0;i<NODES.length;i++){
-      let degree=0;
-      for(let j=0;j<NODES.length;j++) degree+=W[i][j];
-      L[i][i]=degree;
-      for(let j=0;j<NODES.length;j++) if(i!==j) L[i][j]=-W[i][j];
-    }
-    const eig=jacobiEigen(L,900,1e-10);
-    return {W,L,eig};
-  }
-
-  const graph=buildGraph();
-
-  function Urank(r){
-    const U=zeros(NODES.length,r);
-    for(let j=0;j<r;j++){
-      const v=graph.eig.vectors[j];
-      for(let i=0;i<NODES.length;i++) U[i][j]=v[i];
-    }
-    return U;
-  }
-
-  function gramFor(indices,U,lambda=1e-8){
-    const r=U[0].length, G=zeros(r,r);
-    for(const idx of indices){
-      for(let a=0;a<r;a++) for(let b=0;b<r;b++) G[a][b]+=U[idx][a]*U[idx][b];
-    }
-    for(let a=0;a<r;a++) G[a][a]+=lambda;
-    return G;
-  }
-
-  function sigmaMin(indices,U){
-    if(!indices.length) return 0;
-    const G=gramFor(indices,U,0);
-    const vals=jacobiEigen(G,160,1e-12).values;
-    return Math.sqrt(Math.max(0,vals[0]||0));
-  }
-
-  let seed=4;
-  function rng(){
-    seed = (seed*1664525 + 1013904223) >>> 0;
-    return seed/4294967296;
-  }
-
-  function randomSelection(K,localSeed){
-    const old=seed; seed=localSeed;
-    const a=[...Array(NODES.length).keys()];
-    for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
-    seed=old; return a.slice(0,K);
-  }
-
-  function coverageSelection(K){
-    const selected=[0];
-    while(selected.length<K){
-      let best=-1,bestD=-1;
-      for(let i=0;i<NODES.length;i++) if(!selected.includes(i)){
-        const dmin=Math.min(...selected.map(j=>dist(i,j)));
-        if(dmin>bestD){bestD=dmin;best=i;}
-      }
-      selected.push(best);
-    }
-    return selected;
-  }
-
-  function gspSelection(K,U){
-    const selected=[];
-    while(selected.length<K){
-      let best=-1,bestScore=-Infinity;
-      for(let i=0;i<NODES.length;i++) if(!selected.includes(i)){
-        const score=logDetSPD(gramFor(selected.concat(i),U,1e-5));
-        if(score>bestScore){bestScore=score;best=i;}
-      }
-      selected.push(best);
-    }
-    return selected;
-  }
-
-  function robustSelection(K,U){
-    const selected=[];
-    while(selected.length<K){
-      let best=-1,bestScore=-Infinity;
-      for(let i=0;i<NODES.length;i++) if(!selected.includes(i)){
-        const candidate=selected.concat(i);
-        let score;
-        if(candidate.length<=U[0].length){
-          score=logDetSPD(gramFor(candidate,U,1e-5));
-        }else{
-          let worst=Infinity;
-          for(let d=0;d<candidate.length;d++){
-            const kept=candidate.filter((_,idx)=>idx!==d);
-            worst=Math.min(worst,sigmaMin(kept,U));
-          }
-          const coverageBonus=Math.min(...selected.map(s=>dist(i,s)).concat([.3]));
-          score=100*worst + .06*coverageBonus;
-        }
-        if(score>bestScore){bestScore=score;best=i;}
-      }
-      selected.push(best);
-    }
-    return selected;
-  }
-
-  function select(method,K,U,localSeed){
-    if(method==="random") return randomSelection(K,localSeed);
-    if(method==="coverage") return coverageSelection(K);
-    if(method==="robust") return robustSelection(K,U);
-    return gspSelection(K,U);
-  }
-
-  function failureSet(selected,q,localSeed){
-    if(q<=0) return [];
-    const old=seed;seed=localSeed*17+31;
-    const tmp=selected.slice();
-    for(let i=tmp.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [tmp[i],tmp[j]]=[tmp[j],tmp[i]]; }
-    seed=old; return tmp.slice(0,Math.min(q,tmp.length));
-  }
-
-  function reconstruct(selected,failed,U){
-    const active=selected.filter(i=>!failed.includes(i));
-    const r=U[0].length;
-    const A=active.map(i=>U[i].slice());
-    const y=active.map(i=>trueSignal[i]);
-    const At=transpose(A);
-    let G=matMul(At,A);
-    for(let i=0;i<r;i++) G[i][i]+=1e-7;
-    const inv=invert(G);
-    let alpha=Array(r).fill(0);
-    if(inv){
-      const Aty=matVec(At,y);
-      alpha=matVec(inv,Aty);
-    }
-    const xhat=matVec(U,alpha);
-    return {active,xhat};
-  }
-
-  function metrics(selected,failed,U){
-    const {active,xhat}=reconstruct(selected,failed,U);
-    const hidden=[...Array(NODES.length).keys()].filter(i=>!active.includes(i));
-    const errs=hidden.map(i=>trueSignal[i]-xhat[i]);
-    const rmse=Math.sqrt(errs.reduce((s,e)=>s+e*e,0)/Math.max(1,errs.length));
-    const mae=errs.reduce((s,e)=>s+Math.abs(e),0)/Math.max(1,errs.length);
-    const max=Math.max(...errs.map(Math.abs));
-    let coverage=0;
-    for(let i=0;i<NODES.length;i++){
-      const dm=Math.min(...active.map(s=>dist(i,s)));
-      if(dm>coverage) coverage=dm;
-    }
-    const sigma=sigmaMin(active,U);
-    return {rmse,mae,max,coverage,sigma,active,xhat,hidden};
-  }
-
-  const state={method:"gsp",K:9,q:1,r:5,seed:17};
-
-  const budget=document.getElementById("budget");
-  const failure=document.getElementById("failure");
-  const rank=document.getElementById("rank");
-  const methodValue=document.getElementById("methodValue");
-  const methodNames={random:"Random",coverage:"Coverage",gsp:"Graph Signal",robust:"Robust GSP"};
-
-  function renderHero(){
-    const svg=document.getElementById("heroGraph"), W=graph.W;
-    const X=x=>95+x*390, Y=y=>10+y*370;
-    let s='<g opacity=".7">';
-    for(let i=0;i<NODES.length;i++) for(let j=i+1;j<NODES.length;j++) if(W[i][j]>.58){
-      s+=`<line x1="${X(NODES[i][0])}" y1="${Y(NODES[i][1])}" x2="${X(NODES[j][0])}" y2="${Y(NODES[j][1])}" stroke="#9cb3c8" stroke-width="${.7+W[i][j]}" opacity=".38"/>`;
-    }
-    s+='</g>';
-    const chosen=gspSelection(8,Urank(5));
-    for(let i=0;i<NODES.length;i++){
-      const c=chosen.includes(i)?"#1769e0":"#8fa3b6", r=chosen.includes(i)?7:4.7;
-      s+=`<circle cx="${X(NODES[i][0])}" cy="${Y(NODES[i][1])}" r="${r}" fill="${c}" stroke="#fff" stroke-width="2"/>`;
-      if(chosen.includes(i)) s+=`<circle cx="${X(NODES[i][0])}" cy="${Y(NODES[i][1])}" r="${r+7}" fill="none" stroke="#1769e0" stroke-width="1" opacity=".18"/>`;
-    }
-    svg.innerHTML=s;
-  }
-
-  function drawGraph(selected,failed,M){
-    const svg=document.getElementById("graphSvg");
-    const X=x=>220+x*390, Y=y=>18+y*455;
-    let s='<path class="thailand-ghost" d="M345,35 C292,52 270,92 292,130 C309,158 286,195 309,222 C331,247 324,286 347,307 C369,328 368,354 356,382 C347,405 350,447 378,474 C395,459 405,427 399,397 C394,370 417,348 414,321 C411,292 443,272 436,242 C429,211 453,188 446,159 C438,128 467,91 447,58 C427,26 386,22 345,35 Z"/>';
-    for(let i=0;i<NODES.length;i++) for(let j=i+1;j<NODES.length;j++) if(graph.W[i][j]>.60){
-      s+=`<line class="edge" x1="${X(NODES[i][0])}" y1="${Y(NODES[i][1])}" x2="${X(NODES[j][0])}" y2="${Y(NODES[j][1])}" style="opacity:${0.14+graph.W[i][j]*.42}"/>`;
-    }
-    const minS=Math.min(...trueSignal), maxS=Math.max(...trueSignal);
-    for(let i=0;i<NODES.length;i++){
-      const norm=(trueSignal[i]-minS)/(maxS-minS);
-      const isFailed=failed.includes(i), isSelected=selected.includes(i);
-      const cls=isFailed?"failed":(isSelected?"selected":"hidden");
-      const rr=6.2+norm*4.8;
-      if(isSelected && !isFailed) s+=`<circle class="node-halo" cx="${X(NODES[i][0])}" cy="${Y(NODES[i][1])}" r="${rr+8}"/>`;
-      s+=`<circle class="signal-ring" cx="${X(NODES[i][0])}" cy="${Y(NODES[i][1])}" r="${rr+norm*6}"/>`;
-      s+=`<circle class="node ${cls}" cx="${X(NODES[i][0])}" cy="${Y(NODES[i][1])}" r="${rr}"><title>${labels[i]} · synthetic signal ${trueSignal[i].toFixed(1)}</title></circle>`;
-      if(isSelected) s+=`<text class="node-label" x="${X(NODES[i][0])+12}" y="${Y(NODES[i][1])-9}">${isFailed?"FAIL":"S"}</text>`;
-    }
-    svg.innerHTML=s;
-  }
-
-  function calcMethod(method,U){
-    const sel=select(method,state.K,U,state.seed);
-    const fail=failureSet(sel,state.q,state.seed+9);
-    return {sel,fail,m:metrics(sel,fail,U)};
-  }
-
-  function update(){
-    state.K=+budget.value; state.q=+failure.value; state.r=+rank.value;
-    if(state.r>=state.K) state.r=Math.max(3,state.K-1);
-    rank.value=state.r;
-    document.getElementById("budgetValue").textContent=`${state.K} / ${NODES.length}`;
-    document.getElementById("failureValue").textContent=state.q;
-    document.getElementById("rankValue").textContent=state.r;
-    methodValue.textContent=methodNames[state.method];
-
-    const U=Urank(state.r);
-    const cur=calcMethod(state.method,U);
-    drawGraph(cur.sel,cur.fail,cur.m);
-
-    const fmt=n=>Number.isFinite(n)?n.toFixed(2):"—";
-    document.getElementById("mRmse").textContent=fmt(cur.m.rmse);
-    document.getElementById("mMae").textContent=fmt(cur.m.mae);
-    document.getElementById("mMax").textContent=fmt(cur.m.max);
-    document.getElementById("mCoverage").textContent=fmt(cur.m.coverage);
-    document.getElementById("mSigma").textContent=fmt(cur.m.sigma);
-
-    const results=["random","coverage","gsp","robust"].map(method=>({method,...calcMethod(method,U)}));
-    const maxRM=Math.max(...results.map(x=>x.m.rmse),1e-6);
-    const compare=document.getElementById("compareList");
-    compare.innerHTML=results.map(x=>{
-      const w=Math.max(5,100*x.m.rmse/maxRM);
-      const tag=x.method==="robust"?"Robust GSP*":methodNames[x.method];
-      return `<div class="compare-row"><div class="compare-name">${tag}</div><div class="bar-track"><div class="bar-fill" style="width:${w}%"></div></div><div class="compare-num">${x.m.rmse.toFixed(2)}</div></div>`;
-    }).join("");
-  }
-
-  document.querySelectorAll(".method-btn").forEach(btn=>btn.addEventListener("click",()=>{
-    document.querySelectorAll(".method-btn").forEach(x=>x.classList.remove("active"));
-    btn.classList.add("active"); state.method=btn.dataset.method; update();
-  }));
-  [budget,failure,rank].forEach(el=>el.addEventListener("input",update));
-  document.getElementById("newRandom").addEventListener("click",()=>{state.seed+=11;update()});
-  document.getElementById("resetLab").addEventListener("click",()=>{
-    state.method="gsp";state.K=9;state.q=1;state.r=5;state.seed=17;
-    budget.value=9;failure.value=1;rank.value=5;
-    document.querySelectorAll(".method-btn").forEach(x=>x.classList.toggle("active",x.dataset.method==="gsp"));
-    update();
-  });
-
-  const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add("visible")}),{threshold:.08});
-  document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
-
-  renderHero();
-  update();
-})();
-</script>
+  <!-- Application Scripts -->
+  <script src="js/math_engine.js"></script>
+  <script src="js/scenarios_data.js"></script>
+  <script src="js/data_service.js"></script>
+  <script src="js/map_renderer.js"></script>
+  <script src="js/chart_renderer.js"></script>
+  <script src="js/math_inspector.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
