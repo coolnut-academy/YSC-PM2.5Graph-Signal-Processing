@@ -4,6 +4,7 @@
 
 [![Competition](https://img.shields.io/badge/Competition-YSC%202027%20(29th)-blue?style=for-the-badge&logo=target)](https://ysc.nstda.or.th/)
 [![Field](https://img.shields.io/badge/Field-Mathematics%20%26%20Statistics%20(MAAP)-emerald?style=for-the-badge&logo=google-scholar)](blueprint.md)
+[![Textbook](https://img.shields.io/badge/Online%20Textbook-Master%20Companion-amber?style=for-the-badge&logo=gitbook)](TEXTBOOK.md)
 [![License](https://img.shields.io/badge/License-CC%20BY%204.0-violet?style=for-the-badge)](LICENSE)
 [![Webapp](https://img.shields.io/badge/Webapp-Interactive%20PoC%20Suite-pink?style=for-the-badge&logo=leaflet)](index.html)
 
